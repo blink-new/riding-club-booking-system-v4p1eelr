@@ -11,18 +11,19 @@ const STORAGE_KEYS = {
 export const initializeDatabase = async () => {
   try {
     // Test database connection by trying to list bookings
-    await blink.db.bookings.list({ limit: 1 })
-    console.log('Database connection successful')
+    const testQuery = await blink.db.bookings.list({ limit: 1 })
+    console.log('✅ Database connection successful, found', testQuery.length, 'bookings')
     return true
   } catch (error) {
-    console.log('Database not available, using local storage fallback:', error.message)
+    console.log('❌ Database connection failed, using localStorage fallback:', error)
+    console.log('Error details:', error.message || error)
     initializeLocalStorage()
     return false
   }
 }
 
 const initializeLocalStorage = () => {
-  console.log('Initializing localStorage fallback...')
+  console.log('📦 Initializing localStorage fallback...')
   
   // Initialize local storage with sample data if empty
   if (!localStorage.getItem(STORAGE_KEYS.adminMessages)) {
@@ -41,7 +42,7 @@ const initializeLocalStorage = () => {
         id: 'msg_maintenance',
         title: 'System läuft im Offline-Modus',
         content: 'Das System verwendet derzeit lokale Speicherung. Ihre Daten werden lokal gespeichert und sind nur in diesem Browser verfügbar.',
-        priority: 'low',
+        priority: 'high',
         isActive: 1,
         createdBy: 'system',
         createdAt: new Date().toISOString(),
@@ -49,20 +50,20 @@ const initializeLocalStorage = () => {
       }
     ]
     localStorage.setItem(STORAGE_KEYS.adminMessages, JSON.stringify(sampleMessages))
-    console.log('Initialized admin messages in localStorage')
+    console.log('✅ Initialized admin messages in localStorage')
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.bookings)) {
     localStorage.setItem(STORAGE_KEYS.bookings, JSON.stringify([]))
-    console.log('Initialized bookings in localStorage')
+    console.log('✅ Initialized bookings in localStorage')
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.userProfiles)) {
     localStorage.setItem(STORAGE_KEYS.userProfiles, JSON.stringify([]))
-    console.log('Initialized user profiles in localStorage')
+    console.log('✅ Initialized user profiles in localStorage')
   }
   
-  console.log('localStorage initialization complete')
+  console.log('✅ localStorage initialization complete - system running in offline mode')
 }
 
 // Helper functions for local storage
@@ -137,14 +138,19 @@ export const getBookings = async (userId?: string) => {
         whereClause.userId = userId
       }
       
+      console.log('🔍 Querying database with where clause:', whereClause)
+      
       const bookings = await blink.db.bookings.list({
         where: whereClause,
         orderBy: { createdAt: 'desc' }
       })
       
+      console.log('✅ Database query successful, found', bookings?.length || 0, 'bookings')
       return bookings || []
     } catch (dbError) {
-      console.log('Database not available, using localStorage')
+      console.log('❌ Database query failed, using localStorage fallback')
+      console.log('Database error details:', dbError.message || dbError)
+      
       const bookings = getFromLocalStorage(STORAGE_KEYS.bookings)
       let filteredBookings = bookings.filter((b: any) => Number(b.isDeleted) === 0)
       
@@ -152,12 +158,13 @@ export const getBookings = async (userId?: string) => {
         filteredBookings = filteredBookings.filter((b: any) => b.userId === userId)
       }
       
+      console.log('📦 Using localStorage, found', filteredBookings.length, 'bookings')
       return filteredBookings.sort((a: any, b: any) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
     }
   } catch (error) {
-    console.error('Failed to get bookings:', error)
+    console.error('❌ Critical error in getBookings:', error)
     return []
   }
 }

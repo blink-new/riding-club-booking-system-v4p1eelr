@@ -149,17 +149,19 @@ function App() {
   useEffect(() => {
     const initApp = async () => {
       try {
+        console.log('🚀 Initializing Riding Club Booking System...')
+        
         // Initialize database tables (will fallback to localStorage if database unavailable)
         const dbAvailable = await initializeDatabase()
         if (dbAvailable) {
-          console.log('App initialized with database connection')
+          console.log('✅ App initialized with database connection')
         } else {
-          console.log('App initialized with localStorage fallback')
+          console.log('⚠️ App initialized with localStorage fallback')
         }
       } catch (error) {
-        console.error('App initialization failed:', error)
+        console.error('❌ App initialization failed:', error)
         // Force localStorage initialization as fallback
-        console.log('Forcing localStorage initialization...')
+        console.log('🔄 Forcing localStorage initialization...')
         const { initializeDatabase } = await import('@/lib/database')
         await initializeDatabase()
       }
@@ -184,13 +186,18 @@ function App() {
   // Load user-specific data
   const loadUserData = async (userId: string) => {
     try {
+      console.log('👤 Loading user data for userId:', userId)
+      
       // Load bookings (will use localStorage if database unavailable)
       const userBookings = await getBookings(userId)
+      console.log('📅 Loaded bookings:', userBookings?.length || 0)
+      
       if (userBookings && userBookings.length >= 0) {
         setBookings(prev => {
           // Merge with existing bookings, avoiding duplicates
           const existingIds = new Set(prev.map(b => b.id))
           const newBookings = userBookings.filter(b => !existingIds.has(b.id))
+          console.log('🔄 Merging', newBookings.length, 'new bookings with', prev.length, 'existing')
           return [...prev, ...newBookings]
         })
       }
@@ -198,16 +205,20 @@ function App() {
       // Load user profile (will use localStorage if database unavailable)
       const profile = await getUserProfile(userId)
       if (profile) {
+        console.log('👤 Loaded user profile:', profile.displayName || 'No name')
         setUserProfile(profile)
       }
       
       // Load admin messages (will use localStorage if database unavailable)
       const messages = await getAdminMessages()
       if (messages && messages.length > 0) {
+        console.log('📢 Loaded', messages.length, 'admin messages')
         setAdminMessages(messages)
       }
+      
+      console.log('✅ User data loading complete')
     } catch (error) {
-      console.log('Error loading user data:', error.message)
+      console.log('❌ Error loading user data:', error)
       // Continue with existing data if loading fails
     }
   }
